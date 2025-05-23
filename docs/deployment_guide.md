@@ -45,7 +45,7 @@
 2. **代码准备**：
    ```bash
    # 需要将后端代码打包
-   cd PRD/backend
+   cd NoteFlow/backend
    pip install -r requirements.txt -t ./
    zip -r note-agent-api.zip .
    ```
@@ -62,7 +62,7 @@
 #### 第三步：前端部署（静态网站托管）
 1. **构建前端**：
    ```bash
-   cd PRD/frontend
+   cd NoteFlow/frontend
    npm run build
    ```
 
@@ -147,7 +147,7 @@
 
 ### 文件结构优化
 ```
-PRD/
+NoteFlow/
 ├── frontend/
 │   ├── dist/           # 构建产物（部署到静态托管）
 │   └── src/

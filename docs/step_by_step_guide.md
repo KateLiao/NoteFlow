@@ -124,7 +124,7 @@ curl https://your-api-gateway-url.com/
 ## 前端部署详细步骤
 
 ### 1. 修改前端配置
-编辑 `PRD/frontend/src/App.jsx`，修改API地址：
+编辑 `NoteFlow/frontend/src/App.jsx`，修改API地址：
 ```javascript
 // 在文件顶部添加
 const API_BASE_URL = 'https://your-api-gateway-url.com';
@@ -162,7 +162,7 @@ npm run build
 
 2. **上传文件**：
    - 文件管理 → 上传文件夹
-   - 选择 `PRD/frontend/dist` 文件夹
+   - 选择 `NoteFlow/frontend/dist` 文件夹
    - 等待上传完成
 
 3. **配置域名**：
@@ -291,14 +291,3 @@ curl -H "Origin: https://your-domain.com" \
 ### 代码更新流程
 1. 本地修改代码
 2. 重新打包：`zip -r note-agent-scf.zip . -x "*.pyc" "__pycache__/*"`
-3. 云函数控制台上传新的zip包
-4. 前端重新构建并上传
-
-### 版本管理
-建议使用Git管理代码版本，并为每次部署打标签：
-```bash
-git tag -a v1.0.0 -m "初始部署版本"
-git push origin v1.0.0
-```
-
-这样你就完成了完整的云端部署！ 
