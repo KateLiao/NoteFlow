@@ -30,7 +30,7 @@
 ### 1. 代码准备
 ```bash
 # 1. 进入后端目录
-cd PRD/backend
+cd NoteFlow/backend  
 
 # 2. 创建云函数版本的requirements.txt
 echo "fastapi==0.104.1
@@ -145,7 +145,7 @@ const uploadImage = async (file) => {
 
 ### 2. 构建前端
 ```bash
-cd PRD/frontend
+cd NoteFlow/frontend
 
 # 安装依赖
 npm install
