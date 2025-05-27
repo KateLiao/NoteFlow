@@ -10,43 +10,31 @@ import {
   SpinLoading,
   Card,
   Space,
-  NavBar
+  NavBar,
+  Dialog
 } from 'antd-mobile';
-import { CheckOutline, CloseOutline } from 'antd-mobile-icons';
+import { CheckOutline, CloseOutline, CloseCircleOutline } from 'antd-mobile-icons';
 
 export default function App() {
   const [step, setStep] = useState('upload'); // upload | loading | editing | done | error
   const [image, setImage] = useState(null);
   const [imageUrl, setImageUrl] = useState('');
   const [text, setText] = useState('');
-  const [tags, setTags] = useState([]);
+  const [tags, setTags] = useState([]); // 标签对象数组: [{id, text, source}]
   const [tagInput, setTagInput] = useState('');
   const [loadingMsg, setLoadingMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-
+  
   // 图片上传处理
   const handleImageUpload = async (file) => {
-    console.log('=== handleImageUpload 调试信息 ===');
-    console.log('接收到的参数:', file);
-    console.log('参数类型:', typeof file);
-    console.log('是否为 File 对象:', file instanceof File);
-    console.log('是否为 Blob 对象:', file instanceof Blob);
-    console.log('参数详细内容:', file);
-    
     // 确保我们有一个真正的File对象
     let actualFile = file;
     if (file && file.originFileObj) {
       // Antd Mobile可能将真正的File对象包装在originFileObj中
-      console.log('发现 originFileObj:', file.originFileObj);
       actualFile = file.originFileObj;
     }
     
-    console.log('最终使用的文件对象:', actualFile);
-    console.log('最终文件对象类型:', typeof actualFile);
-    console.log('最终文件是否为 File:', actualFile instanceof File);
-    
     if (!(actualFile instanceof File)) {
-      console.error('错误：不是有效的File对象');
       setErrorMsg('文件格式不正确，请重新选择');
       setStep('error');
       return;
@@ -59,18 +47,8 @@ export default function App() {
     formData.append('image', actualFile);
     formData.append('prompt_template', 'default');
     
-    console.log('FormData 内容:');
-    for (let [key, value] of formData.entries()) {
-      console.log(key, ':', value);
-      if (value instanceof File) {
-        console.log(`  - ${key} 是 File 对象, name: ${value.name}, size: ${value.size}, type: ${value.type}`);
-      }
-    }
-    
     try {
-      console.log('开始发送请求...');
       const res = await axios.post('/api/upload_image', formData);
-      console.log('请求成功，响应:', res.data);
       
       if (res.data.success) {
         setText(res.data.text);
@@ -84,7 +62,14 @@ export default function App() {
         });
         
         if (tagRes.data.success) {
-          setTags(tagRes.data.tags);
+          // 将AI返回的字符串数组转换为标签对象数组
+          const aiTags = tagRes.data.tags.map((tagText, index) => ({
+            id: `ai_tag_${Date.now()}_${index}`,
+            text: tagText,
+            source: 'ai'
+          }));
+          
+          setTags(aiTags);
         }
         
         setStep('editing');
@@ -93,8 +78,6 @@ export default function App() {
         setStep('error');
       }
     } catch (error) {
-      console.error('上传错误详情:', error);
-      console.error('错误响应:', error.response?.data);
       setErrorMsg('图片上传或识别失败，请重试');
       setStep('error');
     }
@@ -103,15 +86,39 @@ export default function App() {
   // 添加标签
   const handleAddTag = () => {
     const val = tagInput.trim().replace(/^#/, '');
-    if (val && !tags.includes(val)) {
-      setTags([...tags, val]);
+    
+    if (val && !tags.some(tag => tag.text === val)) {
+      const newTag = {
+        id: `tag_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        text: val,
+        source: 'user'
+      };
+      
+      setTags([...tags, newTag]);
       setTagInput('');
     }
   };
 
   // 删除标签
   const handleRemoveTag = (tag) => {
-    setTags(tags.filter(t => t !== tag));
+    setTags(tags.filter(t => t.id !== tag.id));
+  };
+
+  // 删除标签（带确认）
+  const handleDeleteTag = (tag) => {
+    Dialog.confirm({
+      title: '删除标签',
+      content: `确定要删除标签 "#${tag.text}" 吗？`,
+      confirmText: '删除',
+      cancelText: '取消',
+      onConfirm: () => {
+        handleRemoveTag(tag);
+        Toast.show({
+          icon: 'success',
+          content: '标签已删除'
+        });
+      }
+    });
   };
 
   // 发布到flomo
@@ -120,9 +127,12 @@ export default function App() {
     setLoadingMsg('正在发布到flomo...');
     
     try {
+      // 将标签对象数组转换为字符串数组
+      const tagTexts = tags.map(tag => tag.text);
+      
       const res = await axios.post('/api/publish_note', {
         text,
-        tags,
+        tags: tagTexts, // 发送字符串数组保持API兼容
         image_urls: [imageUrl]
       });
       
@@ -181,20 +191,9 @@ export default function App() {
               <ImageUploader
                 value={[]}
                 onChange={(files) => {
-                  console.log('=== ImageUploader onChange 调试信息 ===');
-                  console.log('files 参数:', files);
-                  console.log('files 数组长度:', files.length);
-                  // 不在这里处理文件上传，因为这里接收到的已经不是原始File对象
                 }}
                 upload={async (file) => {
-                  console.log('=== ImageUploader upload 调试信息 ===');
-                  console.log('upload file 参数:', file);
-                  console.log('upload file 类型:', typeof file);
-                  console.log('upload file 是否为 File:', file instanceof File);
-                  
-                  // 在这里直接处理文件上传，因为这里能拿到真正的File对象
                   if (file instanceof File) {
-                    console.log('开始在upload中处理文件...');
                     handleImageUpload(file);
                   }
                   
@@ -253,14 +252,44 @@ export default function App() {
             <Card title="标签">
               <Space wrap style={{ marginBottom: '16px' }}>
                 {tags.map(tag => (
-                  <Tag
-                    key={tag}
-                    color='#1677ff'
-                    closable
-                    onClose={() => handleRemoveTag(tag)}
+                  <div
+                    key={tag.id}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      backgroundColor: tag.source === 'ai' ? '#f6ffed' : '#e6f7ff',
+                      border: `1px solid ${tag.source === 'ai' ? '#52c41a' : '#1677ff'}`,
+                      borderRadius: '16px',
+                      padding: '8px 12px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      margin: '4px',
+                      minHeight: '32px'
+                    }}
                   >
-                    #{tag}
-                  </Tag>
+                    {tag.source === 'ai' && (
+                      <span style={{ marginRight: '4px', fontSize: '14px' }}>🤖</span>
+                    )}
+                    <span style={{ 
+                      color: tag.source === 'ai' ? '#52c41a' : '#1677ff',
+                      marginRight: '6px'
+                    }}>
+                      #{tag.text}
+                    </span>
+                    <CloseCircleOutline
+                      style={{
+                        fontSize: '16px',
+                        color: '#999',
+                        cursor: 'pointer',
+                        minWidth: '16px',
+                        minHeight: '16px'
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteTag(tag);
+                      }}
+                    />
+                  </div>
                 ))}
               </Space>
               
@@ -276,6 +305,17 @@ export default function App() {
                   添加
                 </Button>
               </Space>
+              
+              {tags.length > 0 && (
+                <div style={{ 
+                  marginTop: '8px', 
+                  fontSize: '12px', 
+                  color: '#999',
+                  textAlign: 'center'
+                }}>
+                  点击标签右侧 ✕ 按钮可删除，🤖 表示AI生成的标签
+                </div>
+              )}
             </Card>
 
             {/* 发布按钮 */}

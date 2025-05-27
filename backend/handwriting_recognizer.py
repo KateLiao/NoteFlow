@@ -95,14 +95,41 @@ def generate_tags(note_content: str) -> Dict:
         )
         data = completion.model_dump()
         text = data.get("choices", [{}])[0].get("message", {}).get("content", "")
-        # 简单标签解析：按换行、逗号、分号等分割，去除空白
+        
+        # 改进的标签解析逻辑
         import re
+        
         # 将文本按换行、逗号、分号等分割
         tags = re.split(r'[\n,;，；]+', text)
-        # 处理每个标签，去除序号、点号、#号和空格
-        tags = [re.sub(r'^[\d\.]+|#|\s+', '', t.strip()) for t in tags if t.strip()]
-        # 只取前3个标签
-        tags = tags[:3]
+        
+        # 处理每个标签
+        cleaned_tags = []
+        for tag in tags:
+            # 去除空白
+            tag = tag.strip()
+            if not tag:
+                continue
+                
+            # 去除序号、点号、星号等
+            tag = re.sub(r'^[\d\.\*\-\+]+\s*', '', tag)
+            
+            # 去除markdown格式符号 **
+            tag = re.sub(r'\*\*([^*]+)\*\*', r'\1', tag)
+            
+            # 去除其他格式符号
+            tag = re.sub(r'[#\*\-\+\s]*([^\*\#\-\+]+)', r'\1', tag).strip()
+            
+            # 过滤掉无效标签
+            if tag and len(tag) > 1 and not any(keyword in tag for keyword in [
+                '标签建议', '标签：', '建议', '以下', '标签', '：', 'tag', 'Tag'
+            ]):
+                # 限制标签长度
+                if len(tag) <= 10:  # 最多10个字符
+                    cleaned_tags.append(tag)
+        
+        # 只取前3个有效标签
+        tags = cleaned_tags[:3]
+        
         if not tags:
             return {"success": False, "tags": [], "raw": data, "text": text}
         return {"success": True, "tags": tags, "raw": data, "text": text}
